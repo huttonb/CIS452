@@ -1,0 +1,25 @@
+Script started on 2018-09-07 08:04:01-04:00
+]0;huttonb@eos14:~/Documents/CIS452/lab1[huttonb@eos14 lab1]$ gcc -[Kprogram1.c -Wall
+]0;huttonb@eos14:~/Documents/CIS452/lab1[huttonb@eos14 lab1]$ ./a.out 
+User is: huttonb
+UID is: 7928
+GID is: 1001
+Host is: eos14
+Entry 1: root
+Entry 2: bin
+Entry 3: daemon
+Entry 4: mail
+Entry 5: ftp
+Environment variable desired?
+TERM
+Value is: xterm
+: ]0;huttonb@eos14:~/Documents/CIS452/lab1[huttonb@eos14 lab1]$ end
+bash: end: command not found
+]0;huttonb@eos14:~/Documents/CIS452/lab1[huttonb@eos14 lab1]$ quit
+bash: quit: command not found
+]0;huttonb@eos14:~/Documents/CIS452/lab1[huttonb@eos14 lab1]$ endscript
+bash: endscript: command not found
+]0;huttonb@eos14:~/Documents/CIS452/lab1[huttonb@eos14 lab1]$ exit
+exit
+
+Script done on 2018-09-07 08:05:01-04:00

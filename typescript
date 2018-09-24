@@ -1,0 +1,57 @@
+Script started on 2018-08-30 13:54:19-04:00
+]0;huttonb@eos26:~/Documents/CIS452[huttonb@eos26 CIS452]$ gcc lab1.c -Wall -g
+]0;huttonb@eos26:~/Documents/CIS452[huttonb@eos26 CIS452]$ ./a.out 
+Hello, world.
+You are the 268435456.000000 person to write this program!
+]0;huttonb@eos26:~/Documents/CIS452[huttonb@eos26 CIS452]$ gdb a.out
+GNU gdb (GDB) 8.1.1
+Copyright (C) 2018 Free Software Foundation, Inc.
+License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.  Type "show copying"
+and "show warranty" for details.
+This GDB was configured as "x86_64-pc-linux-gnu".
+Type "show configuration" for configuration details.
+For bug reporting instructions, please see:
+<http://www.gnu.org/software/gdb/bugs/>.
+Find the GDB manual and other documentation resources online at:
+<http://www.gnu.org/software/gdb/documentation/>.
+For help, type "help".
+Type "apropos word" to search for commands related to "word"...
+Reading symbols from a.out...done.
+(gdb) b 4
+Breakpoint 1 at 0x1151: file lab1.c, line 4.
+(gdb) run
+Starting program: /home/huttonb/Documents/CIS452/a.out 
+
+Breakpoint 1, main () at lab1.c:8
+8	   double num = 0.0;
+(gdb) p num
+$1 = 0
+(gdb) -n
+Undefined command: "-n".  Try "help".
+(gdb) n
+9	   printf ("Hello, world.\n");
+(gdb) n
+Hello, world.
+10	   num = pow(2, 28);
+(gdb) n
+11	   printf ("You are the %f person to write this program!\n", num);
+(gdb) n
+You are the 268435456.000000 person to write this program!
+12	   return 0;
+(gdb) n
+13	} 
+(gdb) n
+0x00007ffff7df7223 in __libc_start_main () from /usr/lib/libc.so.6
+(gdb) n
+Single stepping until exit from function __libc_start_main,
+which has no line number information.
+[Inferior 1 (process 20921) exited normally]
+(gdb) e[Kquit[K[K[K[Kexit
+Undefined command: "exit".  Try "help".
+(gdb) quit
+]0;huttonb@eos26:~/Documents/CIS452[huttonb@eos26 CIS452]$ exit
+exit
+
+Script done on 2018-08-30 13:55:34-04:00
