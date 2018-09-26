@@ -16,8 +16,9 @@ int main(){
 	int numOfComps = 5;
 
 	//Creates two arrays for pipes
-	int fd[2];
-	int fd2[2];
+	int* fd = (int*)malloc(sizeof(int) * 2);
+	int* fd2 = (int*)malloc(sizeof(int) * 2);
+
 
 	//Creates first pipe in the process, we only want this to be created once, and keep a pointer so that the last pipe can connect with it.
 	if(pipe(fd) < 0){
@@ -26,24 +27,27 @@ int main(){
 	}
 	int* fdp = fd;
 
+	printf("Here is fd:%d", fd[0]);
+	fflush(stdout);
 	//Malloc memory for the list of processes, set proc[0] as parent.
 	listProc = (pid_t*)malloc(sizeof(pid_t) * numOfComps);
 	listProc[0] = getpid();
+
 	//Fill malloc array with list of processes. Process [0] is parent.
 	//Each loop a fork is created, the parent leaves the loop, the child continues
 	//Two pipes exist.
 	for (int i = 1; i < numOfComps; i++){
-		int fd2[2];
+		fd2 = (int*)malloc(sizeof(int)*2);
 		//Create pipe so that it exists in both child and parent
 		if(pipe(fd2) < 0){
 				perror("Pipe issues.");
 				exit(1);
-		}
-		
+		}	
 		if ((pid = fork()) < 0){
 			printf("Error! Fork was not successful!");
 			exit(2);
-		}//If parent then add the PID to the list of processes, then exit loop
+		}
+		//If parent then add the PID to the list of processes, then exit loop
 		else if(pid){
 			listProc[i] = pid;
 			i = numOfComps;
@@ -52,6 +56,7 @@ int main(){
 			printf("Child:%d created. Parent is:%d\n", pid, getpid());
 		
 		}
+		
 		//if child stay in loop. If last step of loop, link pipe with original pipe.
 		else{
 			//if it's the last step of the loop (the last child), link with parent.
@@ -61,7 +66,6 @@ int main(){
 			//change fd2 to fd, so that each process only has access to two pipes
 			else
 				 fd = fd2;
-
 			
 			//Dup pipe write to next pipes read
 			dup2(fd[WRITE], fd2[READ]);
@@ -71,9 +75,18 @@ int main(){
 		}
 		//If child maybe wait until parent has finished creating all of the parents, or just immediately go into a while loop waiting for information.
 
-
+		if(listProc[0] == getpid()){
+			char* msg = "Hello";
+			printf("\n\nThis is parent%d#%d sending %c", 1, getpid(),msg);
+			write(fd[WRITE], (const void *) msg, size_t 6);
+		}
+		else if (listProc[1] == getpid()){
+		
+		}
+		
 	}
-	
+	free(fd2);
+	free(fd);	
 	free(listProc);
 	return 0;
 }
