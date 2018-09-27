@@ -1,13 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <sys/types.h>
 
 #define READ 0
 #define WRITE 1
 
 int main(){
 	//int status;
-	pid_t* listProc;
 	pid_t pid;
 
 	//Creates pipe
@@ -19,6 +19,8 @@ int main(){
 	int* fd = (int*)malloc(sizeof(int) * 2);
 	int* fd2 = (int*)malloc(sizeof(int) * 2);
 
+	int id = 1;
+
 
 	//Creates first pipe in the process, we only want this to be created once, and keep a pointer so that the last pipe can connect with it.
 	if(pipe(fd) < 0){
@@ -26,11 +28,8 @@ int main(){
 		exit(1);
 	}
 	int* fdp = fd;
-
-	printf("Here is fd:%d", fd[0]);
-	fflush(stdout);
 	//Malloc memory for the list of processes, set proc[0] as parent.
-	listProc = (pid_t*)malloc(sizeof(pid_t) * numOfComps);
+	pid_t* listProc = (pid_t*)malloc(sizeof(pid_t) * numOfComps);
 	listProc[0] = getpid();
 
 	//Fill malloc array with list of processes. Process [0] is parent.
@@ -48,12 +47,14 @@ int main(){
 			exit(2);
 		}
 		//If parent then add the PID to the list of processes, then exit loop
-		else if(pid){
+		else if(pid){ 
+			printf("\n pid is: %d", pid);
 			listProc[i] = pid;
-			i = numOfComps;
+			id = i;
+			i = numOfComps+1;
 			//Add parent process to write pipe
 	//		dup2(fd2[READ], STDIN_FILENO);
-			printf("Child:%d created. Parent is:%d\n", pid, getpid());
+			printf("Child:%d created. Parent is:%d\n", id, getpid());
 		
 		}
 		
@@ -62,6 +63,7 @@ int main(){
 			//if it's the last step of the loop (the last child), link with parent.
 			if(i == (numOfComps - 1 )){
 				 fd2 = fdp;
+				 id = i+1;
 			}
 			//change fd2 to fd, so that each process only has access to two pipes
 			else
@@ -71,20 +73,41 @@ int main(){
 			dup2(fd[WRITE], fd2[READ]);
 			
 			
+		}
+	}
+		//If child maybe wait until parent has finished creating all of the parents, or just immediately go into a while loop waiting for information.
+	sleep(2);
+	int i = 1;
+	printf("\nint is :%d\n", id);
+	
+
+	while(i){
+			if(id == 1){
+			printf("\nAHHHH");
+			char* msg = "Hello";
+			//printf("\n\nThis is parent%d#%d sending %s", 1, getpid(),msg);
+			write(fd[WRITE], (const void *) msg, (size_t) 6);
+			i = 0;
+		}
+		else if (id == 2){
+			printf("\nHere");
+			fflush(stdout);
+			sleep(1);
+			printf("\nHello.");
+			char str[5];
+			size_t numRead = read(fd2[READ], (void *) str, (size_t) 6);
+			printf("\n\nThis is child%d#%d receiving %ld", 2, getpid(), numRead);
+			fflush(stdout);
+			i = 0;
+			
 			
 		}
-		//If child maybe wait until parent has finished creating all of the parents, or just immediately go into a while loop waiting for information.
-
-		if(listProc[0] == getpid()){
-			char* msg = "Hello";
-			printf("\n\nThis is parent%d#%d sending %c", 1, getpid(),msg);
-			write(fd[WRITE], (const void *) msg, size_t 6);
+		else{
+			i = 0;
 		}
-		else if (listProc[1] == getpid()){
-		
-		}
-		
 	}
+	
+	printf("\nBye.");
 	free(fd2);
 	free(fd);	
 	free(listProc);
