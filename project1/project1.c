@@ -22,7 +22,6 @@ int main(){
 
 	int id = 1;
 
-
 	//Creates first pipe in the process, we only want this to be created once, and keep a pointer so that the last pipe can connect with it.
 	if(pipe(fdWrite) < 0){
 		perror("Pipe issues.");
@@ -55,30 +54,21 @@ int main(){
 			i = numOfComps+1;
 			//Add parent process to write pipe
 			printf("Child:%d created. Parent is:%d\n", id, getpid());
-		
 		}
-		
 		//if child stay in loop. If last step of loop, link pipe with original pipe.
 		else{
 			//if it's the last step of the loop (the last child), link with parent.
 			if(i == (numOfComps - 1 )){
-		//		 fdRead = fdp;
+				 fdRead = fdp;
 				 id = i+1;
 				 printf("No more children, last process ID:%d\n", getpid());
-				 dup2(fdWrite[WRITE], fdRead[READ]);
 			}
-			//change fd2 to fd, so that each process only has access to two pipes
+			//change fdWrite to fdRead, so that each process only has access to two pipes
 			else{
-				dup2(fdWrite[WRITE], fdRead[READ]);
 				fdWrite = fdRead;
-			}
-			//Dup pipe write to next pipes read
-			
-		//write out pipe process, might be missing one pipe.	
+			}	
 		}
 	}
-		//If child maybe wait until parent has finished creating all of the parents, or just immediately go into a while loop waiting for information.
-	sleep(1);
 	int i = 1;
 	printf("\nprocess is :%d\n", id);
 	char* msg;	
@@ -86,8 +76,7 @@ int main(){
 			if(id == 1){
 			msg = "*MSG Sent*";
 			//printf("\n\nThis is parent%d#%d sending %s", 1, getpid(),msg);
-			write(STDOUT_FILENO, (const void *) "*MSG Sent*", (size_t) 11);
-			close(fdWrite[WRITE]);
+			write(fdWrite[WRITE], (const void *) "*MSG Sent*", (size_t) 11);
 			i = 0;
 		}
 		else if (id == 2){
@@ -96,7 +85,7 @@ int main(){
 			sleep(1);
 			char str[10];
 			ssize_t numRead;
-			numRead = read(fdRead[READ], (void *) str, (size_t) 10);
+			numRead = read(fdRead[WRITE], (void *) str, (size_t) 10);
 			// Change both sixes here to the size of the string
 			if ( numRead > 6){
 				perror ("pipe read error\n");
