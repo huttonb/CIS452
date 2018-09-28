@@ -76,7 +76,7 @@ int main(){
 			if(id == 1){
 			msg = "*MSG Sent*";
 			//printf("\n\nThis is parent%d#%d sending %s", 1, getpid(),msg);
-			write(fdWrite[WRITE], (const void *) "*MSG Sent*", (size_t) 11);
+			write(fdRead[WRITE], (const void *) "*MSG Sent*", (size_t) 11);
 			i = 0;
 		}
 		else if (id == 2){
@@ -85,9 +85,9 @@ int main(){
 			sleep(1);
 			char str[10];
 			ssize_t numRead;
-			numRead = read(fdRead[WRITE], (void *) str, (size_t) 10);
+			numRead = read(fdWrite[READ], (void *) str, (size_t) 10);
 			// Change both sixes here to the size of the string
-			if ( numRead > 6){
+			if ( numRead > 10){
 				perror ("pipe read error\n");
 				exit(1);
 			}
