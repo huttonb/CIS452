@@ -10,15 +10,23 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/types.h>
+#include <string.h>
+#include <signal.h>
 
 #define READ 0
 #define WRITE 1
 #define MAX 32
 
+void sigHandler(int sigNum);
+
 int main(){
 	pid_t pid;
 	char* msg = (char*)malloc(sizeof(char)*MAX);
 	int numOfComps;
+	int id = 1;
+	int dest;
+	//Install handler for SIGUSR1
+	signal(SIGUSR1, sigHandler);
  
 	printf("Enter Number of Processes: ");
 	numOfComps = atoi(fgets(msg, MAX, stdin));
@@ -27,9 +35,6 @@ int main(){
 	int* fdWrite = (int*)malloc(sizeof(int)*2);
 	int* fdRead = (int*)malloc(sizeof(int)*2);
 	
-	//Creates id for parent process.
-	int id = 1;
-
 	//Creates first pipe in process. We want numOfComps+1 pipes
 	if(pipe(fdWrite) < 0){
 		perror("Pipe issues.");
@@ -76,30 +81,52 @@ int main(){
 			}
 		}
 	}
-	int i = 1;
+	//If not the last process, pause, waits for last process to finish 
+	if(id != numOfComps)
+		pause();
+	if( id > 1)
+		kill(getppid(), SIGUSR1);
+	
+	
 	if(id == 1){
-		sleep(1);
+		printf("Enter destination: ");
+		dest = atoi(fgets(msg, MAX-1, stdin));
 		printf("Enter message: ");
-		msg = fgets(msg, MAX, stdin);
+		msg = fgets(msg, MAX-1, stdin);
+		//Removes trailing newline
+		strtok(msg, "\n");
+		msg[MAX-1] = '\0';
+	printf("Dest is: \"%d\"", dest);
 	}
-
+	sleep(3);
+	int i = 1;
 	while(i){
 		if(id == 1){
 			write(fdWrite[WRITE], (const void *) msg, (size_t) MAX);
 			i = 0;
 		}
-		else if (id == 2){
-			ssize_t numRead;
-			numRead = read(fdRead[READ], (void *) msg, (size_t) MAX-1);
-			printf("child:%d received message:%s", id, msg);
+		else if (id == dest){
+			read(fdRead[READ], (void *) msg, (size_t) MAX-1);
+			printf("Process%d received message:%s\n", id, msg);
 			i = 0;
 		}
-		else
+		else{
+			read(fdRead[READ], (void *) msg, (size_t) MAX);
+			printf("Process%d received \"%s\" and is forwarding it.\n", id, msg);
+			write(fdWrite[WRITE], (const void*) msg, (size_t) MAX);
 			i = 0;
+		}
 
 	}
 	
 	free(fdRead);
 	free(fdWrite);
 	return 0;
+}
+
+void sigHandler(int sigNum){
+	if (sigNum == SIGUSR1){
+		return;
+	}
+	return;
 }
