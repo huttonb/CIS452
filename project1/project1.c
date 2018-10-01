@@ -1,3 +1,11 @@
+/**
+ * Author: Bryce Hutton
+ * Date 10/1/2018
+ *
+ * Program: Creates a daisy-chain of processes, where you can pass a
+ * message from one process to the other via a constantly circulating
+ * token that the processes can grab and fill with information.
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -5,107 +13,93 @@
 
 #define READ 0
 #define WRITE 1
+#define MAX 32
 
 int main(){
-	//int status;
 	pid_t pid;
+	char* msg = (char*)malloc(sizeof(char)*MAX);
+	int numOfComps;
+ 
+	printf("Enter Number of Processes: ");
+	numOfComps = atoi(fgets(msg, MAX, stdin));
 
-	//Creates pipe
-
-	//Details number of computers, this is a temporary number
-	int numOfComps = 5;
-
-	//fd = write, fd2 = read.
-	//Creates two arrays for pipes
-	int* fdWrite = (int*)malloc(sizeof(int) * 2);
-	int* fdRead = (int*)malloc(sizeof(int) * 2);
-
+	//Allocate memory for pipes.
+	int* fdWrite = (int*)malloc(sizeof(int)*2);
+	int* fdRead = (int*)malloc(sizeof(int)*2);
+	
+	//Creates id for parent process.
 	int id = 1;
 
-	//Creates first pipe in the process, we only want this to be created once, and keep a pointer so that the last pipe can connect with it.
+	//Creates first pipe in process. We want numOfComps+1 pipes
 	if(pipe(fdWrite) < 0){
 		perror("Pipe issues.");
 		exit(1);
 	}
-	int* fdp = fdWrite;
-	//Malloc memory for the list of processes, set proc[0] as parent.
-	pid_t* listProc = (pid_t*)malloc(sizeof(pid_t) * numOfComps);
-	listProc[0] = getpid();
 
-	//Fill malloc array with list of processes. Process [0] is parent.
-	//Each loop a fork is created, the parent leaves the loop, the child continues
-	//Two pipes exist.
-	for (int i = 1; i < numOfComps; i++){
-		fdRead = (int*)malloc(sizeof(int)*2);
-		//Create pipe so that it exists in both child and parent
-		if(pipe(fdRead) < 0){
-				perror("Pipe issues.");
-				exit(1);
-		}	
+	//Secondary pointer to fdWrite for the last process to use.
+	int* fdp = fdWrite;
+
+	//Create shared memory array here:
+	/*
+	 */
+
+	//Creates daisy chain of processes. Each loop forks, the parent leaves the loop
+	//the child continues. Two pipes exist for each process.
+	
+	for(int i = 1; i < numOfComps; i++){
+		//Creates new fdWrite for each function.
+		fdWrite = (int*)malloc(sizeof(int)*2);
+		if(pipe(fdWrite) < 0){
+			perror("Pipe issues.");
+			exit(1);
+		}
 		if ((pid = fork()) < 0){
 			printf("Error! Fork was not successful!");
 			exit(2);
 		}
-		//If parent then add the PID to the list of processes, then exit loop
-		else if(pid){ 
-			printf("\n pid is: %d", pid);
-			listProc[i] = pid;
+		// If parent then leave loop.
+		else if (pid){
 			id = i;
-			i = numOfComps+1;
-			//Add parent process to write pipe
-			printf("Child:%d created. Parent is:%d\n", id, getpid());
-		}
-		//if child stay in loop. If last step of loop, link pipe with original pipe.
+			printf("ID: %d, PID: %d\n", id, getpid());
+			i = numOfComps;
+			/*Add process to shared memory. */
+		}//If the child, stay in the loop. If last step of loop, link with p1
 		else{
-			//if it's the last step of the loop (the last child), link with parent.
-			if(i == (numOfComps - 1 )){
-				 fdRead = fdp;
-				 id = i+1;
-				 printf("No more children, last process ID:%d\n", getpid());
+			if(i == (numOfComps - 1)){
+				fdWrite = fdp;
+				//id = i+1 because usually id is assigned in second loop
+				id = i+1;
+				printf("ID: %d, PID: %d\n", id, getpid());
 			}
-			//change fdWrite to fdRead, so that each process only has access to two pipes
 			else{
-				fdWrite = fdRead;
-			}	
+				fdRead = fdWrite;
+			}
 		}
 	}
 	int i = 1;
-	printf("\nprocess is :%d\n", id);
-	char* msg;	
+	if(id == 1){
+		sleep(1);
+		printf("Enter message: ");
+		msg = fgets(msg, MAX, stdin);
+	}
+
 	while(i){
-			if(id == 1){
-			msg = "*MSG Sent*";
-			//printf("\n\nThis is parent%d#%d sending %s", 1, getpid(),msg);
-			write(fdRead[WRITE], (const void *) "*MSG Sent*", (size_t) 11);
+		if(id == 1){
+			write(fdWrite[WRITE], (const void *) msg, (size_t) MAX);
 			i = 0;
 		}
 		else if (id == 2){
-			printf("\nHere");
-			fflush(stdout);
-			sleep(1);
-			char str[10];
 			ssize_t numRead;
-			numRead = read(fdWrite[READ], (void *) str, (size_t) 10);
-			// Change both sixes here to the size of the string
-			if ( numRead > 10){
-				perror ("pipe read error\n");
-				exit(1);
-			}
-			printf("abb");
-			puts(str);
-			printf("\n\nThis is child%d#%d receiving %s", 2, getpid(), str);
-			fflush(stdout);
-			i = 0;			
-			
-		}
-		else{
+			numRead = read(fdRead[READ], (void *) msg, (size_t) MAX-1);
+			printf("child:%d received message:%s", id, msg);
 			i = 0;
 		}
+		else
+			i = 0;
+
 	}
 	
-	printf("\nBye.");
 	free(fdRead);
-	free(fdWrite);	
-	free(listProc);
+	free(fdWrite);
 	return 0;
 }

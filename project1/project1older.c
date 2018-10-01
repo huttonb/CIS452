@@ -59,6 +59,7 @@ int main(){
 		else{
 			//if it's the last step of the loop (the last child), link with parent.
 			if(i == (numOfComps - 1 )){
+
 				 fdRead = fdp;
 				 id = i+1;
 				 printf("No more children, last process ID:%d\n", getpid());
