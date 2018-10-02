@@ -15,16 +15,19 @@
 
 #define READ 0
 #define WRITE 1
-#define MAX 32
+#define HEADER 32
+#define BODY 224
+#define MAX 256
 
 void sigHandler(int sigNum);
 
 int main(){
 	pid_t pid;
-	char* msg = (char*)malloc(sizeof(char)*MAX);
+	char* msg = (char*)malloc(sizeof(char)*MSG);
+	char* dest = (char*)malloc(sizeof(char)*HEADER);
 	int numOfComps;
 	int id = 1;
-	int dest;
+	int destId;
 	//Install handler for SIGUSR1
 	signal(SIGUSR1, sigHandler);
  
@@ -90,30 +93,36 @@ int main(){
 	
 	if(id == 1){
 		printf("Enter destination: ");
-		dest = atoi(fgets(msg, MAX-1, stdin));
+		dest = (fgets(msg, HEADER-1, stdin));
+		destId = atoi(dest);
 		printf("Enter message: ");
-		msg = fgets(msg, MAX-1, stdin);
+		msg = fgets(msg, BODY-1, stdin);
+		msg = 
 		//Removes trailing newline
 		strtok(msg, "\n");
 		msg[MAX-1] = '\0';
-	printf("Dest is: \"%d\"", dest);
+	printf("DestId is: \"%d\"\n", destId);
 	}
-	sleep(3);
+	sleep(1);
 	int i = 1;
 	while(i){
 		if(id == 1){
 			write(fdWrite[WRITE], (const void *) msg, (size_t) MAX);
 			i = 0;
 		}
-		else if (id == dest){
-			read(fdRead[READ], (void *) msg, (size_t) MAX-1);
-			printf("Process%d received message:%s\n", id, msg);
-			i = 0;
-		}
 		else{
 			read(fdRead[READ], (void *) msg, (size_t) MAX);
-			printf("Process%d received \"%s\" and is forwarding it.\n", id, msg);
-			write(fdWrite[WRITE], (const void*) msg, (size_t) MAX);
+			printf("(dest: %s)(msg: %s)", dest, msg);
+			destId = atoi(dest);
+			printf("(%d == %d)", id, destId);
+			if (id == 4){	
+				printf("Process%d received message:%s\n", id, msg);	
+				//MAKE buffers = 0
+			}
+			else{
+				printf("Process%d received \"%s\" and is forwarding it.\n", id, msg);
+				write(fdWrite[WRITE], (const void*) msg, (size_t) MAX);
+			}
 			i = 0;
 		}
 
