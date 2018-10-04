@@ -21,10 +21,16 @@
 
 void sigHandler(int sigNum);
 
+struct Msg {
+	int dest;
+	char* msgTxt;
+};
+
 int main(){
 	pid_t pid;
-	char* msg = (char*)malloc(sizeof(char)*MSG);
+	char* msg = (char*)malloc(sizeof(char)*MAX);
 	char* dest = (char*)malloc(sizeof(char)*HEADER);
+	char* msgTxt = (char*)malloc(sizeof(char)*BODY);
 	int numOfComps;
 	int id = 1;
 	int destId;
@@ -93,15 +99,32 @@ int main(){
 	
 	if(id == 1){
 		printf("Enter destination: ");
-		dest = (fgets(msg, HEADER-1, stdin));
+		dest = (fgets(dest, HEADER-1, stdin));
+		strtok(dest, "\n");
 		destId = atoi(dest);
+		strtok(dest, "\0");
 		printf("Enter message: ");
-		msg = fgets(msg, BODY-1, stdin);
-		msg = 
+		msgTxt = fgets(msgTxt, BODY-1, stdin);
 		//Removes trailing newline
-		strtok(msg, "\n");
+		strtok(msgTxt, "\n");
+		strncpy(msg, dest, HEADER);
+		strtok(msg, "\0");
+		msg[HEADER] = ' ';
+		msg[HEADER-1] = ' ';
+		for(int i = HEADER; i < MAX; i++){
+			printf("i=%d", i);
+			(msg[i]) = (msgTxt[i-HEADER]);
+			printf(", msg[i] =%c\n", msg[i-HEADER]);
+			if(msg[i-HEADER] == "\0"){
+				printf("AHAHHHHADSFHASDHFASDFPKASDFA")0
+			};
+		}
+		printf("\n\n");
+		//strncpy(msg, msgTxt, BODY);
+		//strtok(msg, "\n");
 		msg[MAX-1] = '\0';
 	printf("DestId is: \"%d\"\n", destId);
+	printf("Message is: %s", msg);
 	}
 	sleep(1);
 	int i = 1;
@@ -112,6 +135,9 @@ int main(){
 		}
 		else{
 			read(fdRead[READ], (void *) msg, (size_t) MAX);
+			strncpy(dest, msg, HEADER);
+			destId = atoi(dest);
+	//		strncpy(
 			printf("(dest: %s)(msg: %s)", dest, msg);
 			destId = atoi(dest);
 			printf("(%d == %d)", id, destId);
@@ -130,6 +156,9 @@ int main(){
 	
 	free(fdRead);
 	free(fdWrite);
+	free(dest);
+	free(msg);
+	free(msgTxt);
 	return 0;
 }
 
