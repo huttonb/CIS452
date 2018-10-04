@@ -23,9 +23,12 @@
 void sigHandler(int sigNum);
 void* handleInput(void* arg);
 
+pthread_mutex_t lock;
+
 struct Msg {
 	int dest;
 	char txt[BODY];
+	int flag;
 };
 
 
@@ -38,8 +41,11 @@ int main(){
 	struct Msg *msg = malloc(sizeof(msg));
 	struct Msg *workerMsg = malloc(sizeof(msg));
 	char* input = (char*)malloc(sizeof(char)*BODY);
+	char emptyTxt[BODY] = {0};
 	int numOfComps;
 	int id = 1;
+	workerMsg->dest = 0;
+	workerMsg->flag = 0;
 	//Install handler for SIGUSR1
 	signal(SIGUSR1, sigHandler);
  
@@ -116,63 +122,67 @@ int main(){
 	sleep(1);
 	//Creates thread in parent process that handles the input.
 	if(id == 1){
+		if(pthread_mutex_init(&lock, NULL) != 0)
+			exit(1);
 		fdRead = fdp;
 		if ((status = pthread_create(&thread1, NULL, handleInput, workerMsg)) != 0){
 			fprintf(stderr, "Thread create error %d: %s\n", status, strerror(status));
 			exit(1);
 		}
-
 	}
 
-
-
-
 	sleep(5);
-	if(id == 1)
-		write(fdWrite[WRITE], (const void *) msg, (size_t) MAX);
+	if(id == 1){
+	//	if(workerMsg->flag == 1){
+			write(fdWrite[WRITE], (const void *) msg, (size_t) MAX);
+	//		memset(workerMsg->txt, 0, BODY);
+	//		workerMsg->dest = 0;
+	//		workerMsg->flag = 0;
+	//	}
+	}
+	
 	while(loop){				
 		read(fdRead[READ], (void *) msg, (size_t) MAX);
 		printf("(dest: %d)(msg: %s)", msg->dest, msg->txt);
 		printf("(%d == %d)", id, msg->dest);
-		if (id == msg->dest && id != 1){
+		pthread_mutex_lock(&lock);
+		if (id == msg->dest){
 			printf("Process%d received message:%s\n", id, msg->txt);	
-			memset(msg->txt, 0, BODY);
+			//memset(msg->txt, 0, BODY);
 			msg->dest = 0;
 			write(fdWrite[WRITE], (const void*) msg, (size_t) MAX);
 		}
-		else if(id == 1 && msg->dest <= 0 && msg->txt[0] != '\0'){
-			//If ID is one and destination is 0, has the chance to pass on a new message
-			if(msg->dest != 1){
-				if(workerMsg->dest != 0){
-					write(fdWrite[WRITE], (const void *) workerMsg, (size_t) MAX);
-					memset(workerMsg->txt, 0, BODY);
-					workerMsg->dest = 0;
-				}
-				else{
-					write(fdWrite[WRITE], (const void*) msg, (size_t) MAX);
-					printf("Process%d received \"%s\" and is forwarding it.\n", id, msg->txt);
-
-				}
-			}//If destination is 1
-			else{
-				printf("Process%d received message:%s\n", id, msg->txt);	
-				if(workerMsg->dest != 0){
-					write(fdWrite[WRITE], (const void *) workerMsg, (size_t) MAX);
-					memset(workerMsg->txt, 0, BODY);
-					workerMsg->dest = 0;
-					printf("Process%d is sending new message:%s\n", id, workerMsg->txt);				
-				}
-				else{
-					write(fdWrite[WRITE], (const void*) msg, (size_t) MAX);
-					printf("Process%d sending empty message.\n", id);
-				}			
+		//If it is the original process, and the destination is nonexistent or 1
+		
+		else if(id == 1 && msg->dest == 0){
+			//Check to see if dest is 0 or 1
+			//If dest is 0 then message needs to be reset to zero or there needs to a message passed
+			//If there's a flag, pass a message, otherwise reset to zero and continue on.
+			if(workerMsg->flag == 1){
+				write(fdWrite[WRITE], (const void*) workerMsg, (size_t) MAX);
+			//	strncpy(msg->txt, workerMsg->txt, BODY);
+			//	msg->dest = workerMsg->dest;
+				printf("Blankity Blank");
+				workerMsg->flag = 0;
+				pthread_mutex_unlock(&lock);
 			}
-		}
+			else{
+				strncpy(msg->txt, emptyTxt, BODY);
+				msg->txt[BODY-1] = '\0';
+				printf("Not blank");
+				write(fdWrite[WRITE], (const void*) msg, (size_t) MAX);
+			}
+			printf("\nPROCESS 1: MSG= %s, DEST=%d, flag:%d\n", msg->txt, workerMsg->dest, workerMsg->flag);
+		
+			
+		
+		}	
 		else{
 			printf("Process%d received \"%s\" and is forwarding it.\n", id, msg->txt);
 			sleep(1);
 			write(fdWrite[WRITE], (const void*) msg, (size_t) MAX);
 		}
+		pthread_mutex_unlock(&lock);
 	}
 	
 	free(fdRead);
@@ -186,19 +196,26 @@ int main(){
 
 //Worker thread is sent here in order to handle the input.
 void* handleInput(void* arg){
-	struct Msg *msg = (struct Msg*)arg;
-	char* input = (char*)malloc(sizeof(char)*BODY);
+	struct Msg *msg1 = (struct Msg*)arg;
+	char* input1 = (char*)malloc(sizeof(char)*BODY);
+	msg1->flag = 0;
 	while(1){
-		printf("Enter destination: ");
-		msg->dest = atoi(fgets(input, HEADER-1, stdin));
-		printf("Enter message: ");
-		fgets(msg->txt, BODY-1, stdin);
-		//Removes trailing newline
-		strtok(msg->txt, "\n");
-		printf("DestId is: \"%d\"\n", msg->dest);
-		printf("msg->txt is: \"%s\"\n", msg->txt);
+		pthread_mutex_lock(&lock);
+		if(msg1->flag == 0){
+			printf("Enter destination: ");
+			msg1->dest = atoi(fgets(input1, HEADER-1, stdin));
+			printf("Enter message: ");
+			fgets(msg1->txt, BODY-1, stdin);
+			//Removes trailing newline
+			strtok(msg1->txt, "\n");
+			msg1->flag = 1;
+			pthread_mutex_unlock(&lock);
+			printf("DestId is: \"%d\"\n", msg1->dest);
+			printf("msg->txt is: \"%s\"\n", msg1->txt);
+		}
+		pthread_mutex_unlock(&lock);
 	}
-	free(input);
+	free(input1);
 
 }
 
